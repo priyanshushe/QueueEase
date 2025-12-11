@@ -3,28 +3,38 @@ A lightweight, Flask-based queue and token management system with MongoDB storag
 
 # ✨ Features
  User token creation with automatic department classification
+ 
  Staff login, dashboard view, and token lifecycle management
+ 
  Token status API (JSON)
+ 
  ML-powered time-slot prediction (LinearRegression)
+ 
  MongoDB-backed storage (smartqueue database)
+ 
  Helper scripts for adding/removing staff & creating department data
+ 
  Optional OpenAI integration for improved responses
 
 # 📁 Repository Structure
 Queue management system/
-├─ app.py                   # Main Flask server
-├─ predict_slot.py          # Slot prediction model (Linear Regression)
-├─ create_staff.py          # CLI tool to add staff
-├─ delete_staff.py          # CLI tool to delete staff
-├─ setup_department.py       # Department initialization helper
-├─ requirements.txt         # Python dependencies
-├─ templates/               # (If included) Flask HTML templates
-└─ static/                  # (If included) CSS/JS files
+├─ app.py                   # Main Flask server<br>
+├─ predict_slot.py          # Slot prediction model (Linear Regression)<br>
+├─ create_staff.py          # CLI tool to add staff<br>
+├─ delete_staff.py          # CLI tool to delete staff<br>
+├─ setup_department.py       # Department initialization helper<br>
+├─ requirements.txt         # Python dependencies<br>
+├─ templates/               # (If included) Flask HTML templates<br>
+└─ static/                  # (If included) CSS/JS files<br>
 
 # 🧰 Tech Stack
+
 Backend: Python, Flask, Flask-Login
+
 Database: MongoDB (via PyMongo)
+
 Machine Learning: scikit-learn, pandas
+
 Optional AI: OpenAI Python Client
 
 # 🚀 Installation
