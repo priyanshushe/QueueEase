@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Smart Queue</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+<link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet" />
+
+<style>
+/* ===== BODY ===== */
+body {
+    font-family: 'Poppins', sans-serif;
+    margin: 0;
+    min-height: 100vh;  /* Allow scrolling */
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    background: url("{{ url_for('static', filename='background.jpg') }}") no-repeat center center/cover;
+}
+
+/* ===== GLASS CONTAINER ===== */
+.container-glass {
+    position: relative;
+    z-index: 2;
+    background: rgba(5, 15, 35, 0.78);
+    backdrop-filter: blur(16px);
+    border-radius: 25px;
+    padding: 26px 32px;
+    margin: 24px 0;
+    width: 95%;
+    max-width: 1150px;
+    color: #fff;
+    box-shadow: 0px 12px 30px rgba(0,0,0,0.5);
+}
+
+/* ===== SECTION CARDS ===== */
+.section-card {
+    background: rgba(255,255,255,0.12);
+    border-radius: 18px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+}
+
+/* Reduced height of chatbot */
+#chatbot-section {
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+/* Make token section slightly smaller */
+#token-status-section {
+    max-height: 220px;
+}
+
+/* Inputs and Buttons */
+input, button {
+    border-radius: 8px !important;
+    font-size: 0.9rem !important;
+    padding: 8px 10px !important;
+}
+
+/* Header text */
+h1 {
+    text-align: center;
+    margin-bottom: 4px;
+    font-size: 2.2rem;
+    font-weight: 600;
+}
+.subtitle {
+    text-align: center;
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .section-card {
+        margin-bottom: 10px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container-glass">
+    <h1>Smart Queue</h1>
+    <p class="subtitle">Save time, Skip the line</p>
+
+    <div class="row g-3">
+        <!-- ============================= -->
+        <!-- LEFT: User Registration -->
+        <!-- ============================= -->
+        <div class="col-md-6">
+            <div class="section-card">
+                <h4>User Registration</h4>
+                <p>Book your token by selecting date and time slot.</p>
+                <form action="/user" method="POST">
+                    <input type="text" class="form-control mb-2" name="name" placeholder="Full Name" required>
+                    <input type="text" class="form-control mb-2" name="phone" placeholder="Phone Number" required>
+                    <input type="text" class="form-control mb-2" name="issue" placeholder="Issue" required>
+
+                    <label>Select Date</label>
+                    <input type="date" class="form-control mb-2" name="date" value="{{ today }}" min="{{ today }}" required>
+
+                    <label>Select Time Slot</label>
+                    <div class="d-flex gap-2">
+                        <input type="time" class="form-control" id="time-slot-input" name="time_slot" step="900" required>
+                        <button type="button" class="btn btn-info" id="suggest-slot-btn">Suggest</button>
+                    </div>
+                    <small id="suggested-slot-text" style="color:#ddd;"></small>
+
+                    <button type="submit" class="btn btn-primary w-100 mt-3">Submit</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ============================= -->
+        <!-- RIGHT: Smart Assistant -->
+        <!-- ============================= -->
+        <div class="col-md-6">
+            <div class="section-card" id="chatbot-section">
+                <h4>💬 Ask Smart Assistant</h4>
+                <p>Ask about waiting time, best time to visit, or how to check token status.</p>
+                
+                <input type="text" id="chat-input" class="form-control mb-2" placeholder="e.g. When should I come to avoid waiting?" />
+                <button type="button" class="btn btn-secondary w-100" onclick="sendChat()">Ask</button>
+                <div id="chat-response" class="mt-2" style="font-size:0.9rem;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================= -->
+    <!-- STAFF & TOKEN STATUS (BOTTOM) -->
+    <!-- ============================= -->
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="section-card">
+                <h4>Staff Login</h4>
+                <p>Only authorized staff can access the dashboard.</p>
+                <form action="/staff_login" method="POST">
+                    <input type="text" class="form-control mb-2" name="username" placeholder="Username" required>
+                    <input type="password" class="form-control mb-2" name="password" placeholder="Password" required>
+                    <button type="submit" class="btn btn-success w-100">Login</button>
+                </form>
+                {% if login_error %}
+                <div style="color:red;">Invalid username or password</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="section-card" id="token-status-section">
+                <h4>Token Status</h4>
+                <p>Enter your token number to check status.</p>
+                <input type="number" id="status-token-number" class="form-control mb-2" placeholder="Enter Token Number">
+                <button class="btn btn-info w-100" id="check-status">Check Status</button>
+                <div id="status-result"></div>
+            </div>
+        </div>
+    </div>
+        <!-- ============================= -->
+    <!-- FEEDBACK SECTION -->
+    <!-- ============================= -->
+    <div class="row g-3 mt-2">
+        <div class="col-12">
+            <div class="section-card" id="feedback-section">
+                <h4>📝 Give Feedback</h4>
+                <p class="panel-subtitle">
+                    Help us improve our service. Choose a department and share your feedback.
+                </p>
+
+                {% if feedback_success %}
+                    <div class="alert alert-success py-2">
+                        Thank you for your feedback!
+                    </div>
+                {% endif %}
+
+                <form action="/feedback" method="POST">
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <label class="form-label">Your Name (optional)</label>
+                            <input type="text" name="name" class="form-control" placeholder="Name">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Department</label>
+                            <select name="department" class="form-control" required>
+                                <option value="" disabled selected>Select department</option>
+                                <option value="Deposit & Withdrawal">Deposit & Withdrawal</option>
+                                <option value="Loans">Loans</option>
+                                <option value="KYC & Account Creation">KYC & Account Creation</option>
+                                <option value="General">General</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12 mt-2">
+                            <label class="form-label">Feedback</label>
+                            <textarea name="message" class="form-control" rows="3"
+                                      placeholder="Write your feedback here..." required></textarea>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 mt-3">Submit Feedback</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+// Show suggestion
+document.getElementById("suggest-slot-btn").addEventListener("click", () => {
+    const date = document.querySelector('input[name="date"]').value;
+    const suggestionText = document.getElementById("suggested-slot-text");
+    const timeInput = document.getElementById("time-slot-input");
+
+    if (!date) return alert("Please select a date");
+    suggestionText.innerText = "Checking...";
+
+    fetch(`/api/suggest_slot?date=${encodeURIComponent(date)}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.suggested_slot) {
+                timeInput.value = data.suggested_slot;
+                suggestionText.innerText = `Suggested: ${data.suggested_slot}`;
+            } else suggestionText.innerText = "No slot available.";
+        })
+        .catch(() => suggestionText.innerText = "Error fetching slot");
+});
+
+// AI Chatbot
+function sendChat() {
+    const input = document.getElementById("chat-input");
+    const responseDiv = document.getElementById("chat-response");
+
+    if (!input.value.trim()) return alert("Enter message");
+
+    responseDiv.innerHTML = "<em>Thinking...</em>";
+    fetch("/chatbot", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: "message=" + encodeURIComponent(input.value.trim())
+    })
+    .then(res => res.json())
+    .then(data => responseDiv.innerHTML = "<strong>Assistant:</strong> " + data.reply)
+    .catch(() => responseDiv.innerHTML = "Error in chatbot.");
+}
+
+// Token status
+document.getElementById('check-status').addEventListener('click', () => {
+    const token = document.getElementById('status-token-number').value;
+    if (!token) return alert("Enter token number");
+
+    fetch(`/api/token_status/${token}`)
+        .then(res => res.json())
+        .then(data => {
+            const resultDiv = document.getElementById('status-result');
+            reresultDiv.innerHTML = `
+                <p>Token Number: <strong>${data.token_number}</strong></p>
+                <p>Status: <strong>${data.status}</strong></p>
+                ${data.department ? `<p>Department: <strong>${data.department}</strong></p>` : ""}
+                <p id="status-countdown"></p>
+`               ;
+        });
+});
+</script>
+
+</body>
+</html>
